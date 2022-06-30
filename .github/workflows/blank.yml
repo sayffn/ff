@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# ---
+# System updates and basic packages
+# ---
+sudo -i
+apt-get update
+apt-get -y upgrade
+apt-get -y dist-upgrade
+apt-get -y autoclean
+apt-get -y install build-essential curl git-core python-software-properties ufw
+
+# ---
+# NGINX, SQLite3, PostgreSQL, NodeJS
+# ---
+add-apt-repository -y ppa:nginx/stable
+add-apt-repository -y ppa:pitti/postgresql
+add-apt-repository -y ppa:chris-lea/node.js
+apt-get update
+apt-get -y install nginx sqlite3 libsqlite3-dev postgresql libpq-dev nodejs
+
+# ---
+# MongoDB
+# ---
+apt-key adv --keyserver keyserver.ubuntu.com --recv 7F0CEB10
+echo "deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen" | tee -a /etc/apt/sources.list.d/10gen.list
+apt-get -y update
+apt-get -y install mongodb-10gen
+
+# ---
+# Set-up firewall
+# ---
+ufw allow ssh
+ufw allow 80
+ufw allow git
+ufw default deny
+ufw enable
+
+# ---
+# Start and configure services
+# ---
+service nginx start
+sudo -u postgres psql
+\password
+# Manually: Type new password and exit with \quit
+
+# ---
+# Add users
+# ---
+adduser mjaros --ingroup sudo
+adduser deployer --ingroup sudo
+
+# ---
+# Install Rbenv, Ruby, Bundler
+# ---
+su deployer
+curl https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
+nano ~/.bashrc
+# Manually: Add suggested lines from rbenv-installer to the top
+. ~/.bashrc
+rbenv bootstrap-ubuntu-12-04
+rbenv install 1.9.3-p194
+rbenv global 1.9.3-p194
+ruby -v
+echo "---" > ~/.gemrc
+echo ":verbose: true" >> ~/.gemrc
+echo ":bulk_threshold: 1000" >> ~/.gemrc
+echo "install: --no-ri --no-rdoc --env-shebang" >> ~/.gemrc
+echo ":sources:" >> ~/.gemrc
+echo "- http://gems.rubyforge.org/" >> ~/.gemrc
+echo ":benchmark: false" >> ~/.gemrc
+echo ":backtrace: false" >> ~/.gemrc
+echo "update: --no-ri --no-rdoc --env-shebang" >> ~/.gemrc
+echo ":update_sources: true" >> ~/.gemrc
+gem update --system
+gem install bundler
+rbenv rehash
+bundle -v
